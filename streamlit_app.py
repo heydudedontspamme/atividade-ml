@@ -3,6 +3,9 @@ import os
 from google import genai
 from google.genai import types
 
+# Remove hardcoded API key and fetch it from Streamlit secrets
+api_key = st.secrets["google_gemini_api_key"]
+
 # Page Configuration
 st.set_page_config(
     page_title="Resume Spinner",
@@ -142,61 +145,57 @@ with col1:
             st.error(t['error_input'])
         else:
             try:
-                api_key = os.environ.get("API_KEY")
-                if not api_key:
-                    st.error("API_KEY not found in environment variables.")
-                else:
-                    client = genai.Client(api_key=api_key)
-                    
-                    with st.spinner(t['button_loading']):
-                        # Prompt Construction
-                        if st.session_state.language == 'pt-br':
-                            sys_instruct = """
-                                Você é um especialista em Redação de Currículos e Comunicação Corporativa, especializado em "Corporate Speak".
-                                Seu objetivo é pegar uma experiência de trabalho negativa e reescrevê-la como um ponto de currículo brilhante.
-                                Regras:
-                                1. Transforme falhas em "pivôs estratégicos".
-                                2. Transforme preguiça em "maximização de eficiência".
-                                3. Transforme demissão em "conclusão de ciclo contratual".
-                                4. Use palavras como: sinergia, alavancar, orquestrar, liderar, mudança de paradigma, stakeholders, KPI.
-                                5. A saída DEVE ser um único ponto de lista conciso, mas prolixo, em PORTUGUÊS DO BRASIL.
-                            """
-                        else:
-                            sys_instruct = """
-                                You are an expert Resume Writer and Corporate Communications Specialist specializing in "Corporate Speak". 
-                                Your goal is to take a negative work experience and rewrite it into a glowing resume bullet point.
-                                Rules:
-                                1. Turn failures into "strategic pivots".
-                                2. Turn laziness into "efficiency maximization".
-                                3. Turn getting fired into "seeking new challenges".
-                                4. Use words like: synergize, leverage, orchestrate, spearhead, paradigm shift, stakeholders, KPI.
-                                5. The output MUST be a single, concise, but wordy bullet point.
-                            """
+                client = genai.Client(api_key=api_key)
+                
+                with st.spinner(t['button_loading']):
+                    # Prompt Construction
+                    if st.session_state.language == 'pt-br':
+                        sys_instruct = """
+                            Você é um especialista em Redação de Currículos e Comunicação Corporativa, especializado em "Corporate Speak".
+                            Seu objetivo é pegar uma experiência de trabalho negativa e reescrevê-la como um ponto de currículo brilhante.
+                            Regras:
+                            1. Transforme falhas em "pivôs estratégicos".
+                            2. Transforme preguiça em "maximização de eficiência".
+                            3. Transforme demissão em "conclusão de ciclo contratual".
+                            4. Use palavras como: sinergia, alavancar, orquestrar, liderar, mudança de paradigma, stakeholders, KPI.
+                            5. A saída DEVE ser um único ponto de lista conciso, mas prolixo, em PORTUGUÊS DO BRASIL.
+                        """
+                    else:
+                        sys_instruct = """
+                            You are an expert Resume Writer and Corporate Communications Specialist specializing in "Corporate Speak". 
+                            Your goal is to take a negative work experience and rewrite it into a glowing resume bullet point.
+                            Rules:
+                            1. Turn failures into "strategic pivots".
+                            2. Turn laziness into "efficiency maximization".
+                            3. Turn getting fired into "seeking new challenges".
+                            4. Use words like: synergize, leverage, orchestrate, spearhead, paradigm shift, stakeholders, KPI.
+                            5. The output MUST be a single, concise, but wordy bullet point.
+                        """
 
-                        response = client.models.generate_content(
-                            model='gemini-2.5-flash',
-                            contents=user_input,
-                            config=types.GenerateContentConfig(
-                                system_instruction=sys_instruct,
-                                temperature=0.9,
-                                top_p=0.95,
-                                top_k=40
-                            )
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=user_input,
+                        config=types.GenerateContentConfig(
+                            system_instruction=sys_instruct,
+                            temperature=0.9,
+                            top_p=0.95,
+                            top_k=40
                         )
-                        
-                        result_text = response.text.strip()
-                        
-                        # Add to history
-                        import datetime
-                        st.session_state.history.insert(0, {
-                            "original": user_input,
-                            "spun": result_text,
-                            "timestamp": datetime.datetime.now().strftime("%H:%M")
-                        })
-                        
-                        # Trigger a rerun to update history sidebar immediately
-                        st.rerun()
-                        
+                    )
+                    
+                    result_text = response.text.strip()
+                    
+                    # Add to history
+                    import datetime
+                    st.session_state.history.insert(0, {
+                        "original": user_input,
+                        "spun": result_text,
+                        "timestamp": datetime.datetime.now().strftime("%H:%M")
+                    })
+                    
+                    # Trigger a rerun to update history sidebar immediately
+                    st.rerun()
+                    
             except Exception as e:
                 st.error(f"{t['error_api']} ({str(e)})")
 
